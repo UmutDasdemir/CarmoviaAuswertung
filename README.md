@@ -1,8 +1,8 @@
 # Carmovia Customer Intelligence
 
 Monatliches Kundendashboard fuer Auftragsanzahl, Umsatz, Marge in Euro und
-prozentuale Marge. Die eingecheckte Version verwendet ausschliesslich fiktive
-Beispieldaten.
+prozentuale Marge. Ohne einen explizit bereitgestellten Carmovia-Export zeigt
+die Anwendung einen leeren Datenzustand und keine fiktiven Kennzahlen.
 
 ## Entwicklung
 
@@ -15,5 +15,5 @@ npm run dev
 
 GitHub Pages ist eine statische Veroeffentlichung. Echte Kundennamen und
 Finanzdaten duerfen deshalb nur mit einer separat festgelegten Zugriffssicherung
-bereitgestellt werden. Die Datei `public/data/customer-monthly.json` wird nicht
-mitgeliefert.
+bereitgestellt werden. Der eingecheckte Export enthaelt deshalb standardmaessig
+keine Datensaetze.

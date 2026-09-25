@@ -25,6 +25,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: GitHub-Pages-Assets an die Projektwurzel verschieben
+        shell: bash
+        run: |
+          repository_name="${GITHUB_REPOSITORY#*/}"
+          nested_assets="dist/client/${repository_name}/_next"
+          if [[ -d "${nested_assets}" ]]; then
+            mv "${nested_assets}" dist/client/_next
+            rmdir "dist/client/${repository_name}"
+          fi
       - run: touch dist/client/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4

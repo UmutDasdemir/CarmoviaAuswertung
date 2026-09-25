@@ -66,73 +66,7 @@ type MonthlyRecord = {
 };
 
 type Trend = 'growth' | 'stable' | 'watch' | 'decline';
-
-const demoCustomers = [
-  {
-    id: 'atlas',
-    name: 'Atlas Autohaus',
-    orders: [12, 13, 14, 16, 18, 20, 23, 27],
-    revenue: [18400, 19700, 21800, 25100, 28700, 32200, 37400, 45100],
-    margin: [0.184, 0.191, 0.196, 0.204, 0.211, 0.216, 0.223, 0.229],
-  },
-  {
-    id: 'elbe',
-    name: 'Elbe Mobility',
-    orders: [31, 30, 28, 27, 24, 20, 17, 13],
-    revenue: [49800, 48300, 45100, 43800, 38900, 32100, 27400, 20500],
-    margin: [0.218, 0.216, 0.208, 0.203, 0.194, 0.181, 0.169, 0.154],
-  },
-  {
-    id: 'rhein',
-    name: 'Rhein Fleet Services',
-    orders: [22, 23, 21, 24, 23, 25, 24, 25],
-    revenue: [35200, 36900, 34100, 38800, 37500, 40700, 39600, 41200],
-    margin: [0.207, 0.204, 0.211, 0.209, 0.213, 0.208, 0.215, 0.212],
-  },
-  {
-    id: 'main',
-    name: 'MainDrive Handel',
-    orders: [18, 20, 19, 21, 19, 18, 16, 15],
-    revenue: [28600, 31800, 30400, 34200, 30900, 29600, 26500, 24700],
-    margin: [0.201, 0.207, 0.203, 0.198, 0.187, 0.176, 0.165, 0.158],
-  },
-  {
-    id: 'nord',
-    name: 'Nordstern Automotive',
-    orders: [8, 9, 11, 13, 15, 17, 20, 22],
-    revenue: [12100, 13900, 17200, 20600, 24100, 27800, 33400, 36900],
-    margin: [0.162, 0.168, 0.177, 0.186, 0.193, 0.201, 0.209, 0.217],
-  },
-  {
-    id: 'west',
-    name: 'Westpark Fleet',
-    orders: [3, 5, 7, 8, 10, 12, 14, 17],
-    revenue: [4800, 7900, 11200, 13100, 16400, 20100, 23600, 28900],
-    margin: [0.148, 0.155, 0.161, 0.169, 0.176, 0.184, 0.191, 0.199],
-  },
-];
-
-const demoMonths = [
-  '2026-01',
-  '2026-02',
-  '2026-03',
-  '2026-04',
-  '2026-05',
-  '2026-06',
-  '2026-07',
-  '2026-08',
-];
-
-const demoRecords: MonthlyRecord[] = demoCustomers.flatMap((customer) =>
-  demoMonths.map((month, index) => ({
-    month,
-    customerId: customer.id,
-    customerName: customer.name,
-    orders: customer.orders[index],
-    revenue: customer.revenue[index],
-    cost: Math.round(customer.revenue[index] * (1 - customer.margin[index])),
-  })),
-);
+type DataState = 'loading' | 'live' | 'missing' | 'error';
 
 const chartConfig = {
   revenue: { label: 'Umsatz', color: 'var(--chart-1)' },
@@ -153,6 +87,7 @@ function currentCalendarMonth() {
 }
 
 function monthLabel(month: string, long = false) {
+  if (!/^\d{4}-\d{2}$/.test(month)) return '–';
   const [year, value] = month.split('-').map(Number);
   return new Intl.DateTimeFormat('de-DE', {
     month: long ? 'long' : 'short',
@@ -237,9 +172,9 @@ function Delta({ value }: { value: number }) {
 }
 
 export default function Home() {
-  const [records, setRecords] = useState<MonthlyRecord[]>(demoRecords);
-  const [dataMode, setDataMode] = useState<'demo' | 'live'>('demo');
-  const [selectedMonth, setSelectedMonth] = useState(demoMonths.at(-1)!);
+  const [records, setRecords] = useState<MonthlyRecord[]>([]);
+  const [dataState, setDataState] = useState<DataState>('loading');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('all');
   const [query, setQuery] = useState('');
   const [trendFilter, setTrendFilter] = useState<Trend | 'all'>('all');
@@ -263,10 +198,12 @@ export default function Home() {
               .filter((month) => month < currentCalendarMonth())
               .at(-1) ?? availableMonths.at(-1);
           if (latestFullMonth) setSelectedMonth(latestFullMonth);
-          setDataMode('live');
+          setDataState('live');
+        } else {
+          setDataState('missing');
         }
       })
-      .catch(() => undefined);
+      .catch(() => setDataState('error'));
   }, []);
 
   const months = useMemo(
@@ -303,11 +240,25 @@ export default function Home() {
           const current = records.find(
             (row) =>
               row.month === activeMonth && row.customerId === customer.id,
-          )!;
+          ) ?? {
+            month: activeMonth,
+            customerId: customer.id,
+            customerName: customer.name,
+            orders: 0,
+            revenue: 0,
+            cost: 0,
+          };
           const previous = records.find(
             (row) =>
               row.month === previousMonth && row.customerId === customer.id,
-          )!;
+          ) ?? {
+            month: previousMonth,
+            customerId: customer.id,
+            customerName: customer.name,
+            orders: 0,
+            revenue: 0,
+            cost: 0,
+          };
           const metrics = sum([current]);
           const { trend, score } = classify(records, customer.id);
           return {
@@ -381,6 +332,58 @@ export default function Home() {
     },
   ];
 
+  if (dataState !== 'live') {
+    return (
+      <main className="app-shell">
+        <aside className="sidebar">
+          <div className="brand">
+            <span className="brand-mark">C</span>
+            <span>
+              <strong>carmovia</strong>
+              <small>Customer Intelligence</small>
+            </span>
+          </div>
+          <nav aria-label="Hauptnavigation">
+            <a className="nav-item active" href="#overview">
+              <LayoutDashboard aria-hidden="true" /> Überblick
+            </a>
+          </nav>
+          <div className="sidebar-note">
+            <span className="status-dot" />
+            <div>
+              <strong>Datenquelle</strong>
+              <small>Noch nicht verbunden</small>
+            </div>
+          </div>
+        </aside>
+        <section className="workspace">
+          <header className="topbar">
+            <div>
+              <p className="eyebrow">Kundenaktivität</p>
+              <h1>Monatliche Performance</h1>
+            </div>
+          </header>
+          <div className="content" id="overview">
+            <Card className="customer-card">
+              <CardHeader>
+                <CardTitle>
+                  {dataState === 'loading'
+                    ? 'Carmovia-Daten werden geladen'
+                    : 'Noch keine echten Carmovia-Daten verfügbar'}
+                </CardTitle>
+                <CardDescription>
+                  Es werden keine fiktiven Kennzahlen mehr angezeigt. Das
+                  Dashboard wartet auf den aggregierten Export aus der
+                  Carmovia-Hauptübersicht.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -405,7 +408,7 @@ export default function Home() {
         <div className="sidebar-note">
           <span className="status-dot" />
           <div>
-            <strong>{dataMode === 'live' ? 'Carmovia-Daten' : 'Beispieldaten'}</strong>
+            <strong>Carmovia-Daten</strong>
             <small>
               Letzter voller Monat: {monthLabel(latestFullMonth, true)}
             </small>
@@ -428,7 +431,7 @@ export default function Home() {
               value={activeMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
             >
-              {months.slice(1).map((month) => (
+              {months.map((month) => (
                 <NativeSelectOption key={month} value={month}>
                   {monthLabel(month, true)}
                   {month === currentCalendarMonth() ? ' (laufend)' : ''}
