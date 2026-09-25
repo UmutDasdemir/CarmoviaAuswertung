@@ -11,9 +11,9 @@ npm ci
 npm run dev
 ```
 
-## Datenschutz
+## Geschuetzter VPS-Betrieb
 
-GitHub Pages ist eine statische Veroeffentlichung. Echte Kundennamen und
-Finanzdaten duerfen deshalb nur mit einer separat festgelegten Zugriffssicherung
-bereitgestellt werden. Der eingecheckte Export enthaelt deshalb standardmaessig
-keine Datensaetze.
+Echte Kundennamen und Finanzdaten werden nicht ueber GitHub Pages veroeffentlicht.
+Der private Container liest `customer-monthly.json` aus einem nur auf dem VPS
+vorhandenen Volume und verlangt zusaetzlich einen Dashboard-Benutzer samt Passwort.
+Der eingecheckte Export enthaelt deshalb keine Datensaetze.
